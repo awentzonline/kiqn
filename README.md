@@ -10,22 +10,31 @@ from kiqn.losses import iqn_loss
 
 ...your good codes...
 
-# `x_tau` contains the input features conditioned
-# on the quantile embeddings
-# `taus` are the quantile samples
-x_tau, taus = IQN(num_quantiles=32,
-                  embedding_dims=64,
-                  name='iqn')(input_features)
+x_in = Input(batch_shape=(batch_size, input_dims,))
+y_in = Input(batch_shape=(batch_size, output_dims,))
 
 ...more good codes...
 
-# reshape `taus` so they can be concatenated with the output
-taus = Lambda(lambda x: K.tile(taus, (1, output_dims)), name='taus_rehaped')(taus)
+# `x_tau` contains the input features conditioned on the quantile embeddings
+# `taus` are the quantile samples
+x_tau, taus = IQN(
+    num_quantiles=32,
+    embedding_dims=64,
+    name='iqn'
+)(x_features)
 
-# concatenate along batch axis, taus first
-iqn_output = layers.concatenate([taus, p_output], axis=0, name='iqn_out')
+... y_out = f(x_tau) ...
 
-...10x codes...
+model = Model(inputs=[x_in, y_in], outputs=[y_out])
+model.add_loss(iqn_loss(y_in, y_out, taus))
+model.compile(optimizer='adam')
 
-model.compile(optimizer='adam', iqn_loss(num_quantiles=num_quantiles))
+# Since we don't assign loss functions in `compile`, don't send any targets
+model.fit([train_x, train_y], [])
+
+# Use it
+f_output = K.function(
+    [model.inputs[0]],
+    [model.get_layer('y_out').output]
+)
 ```

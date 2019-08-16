@@ -19,7 +19,6 @@ class IQN(Layer):
         super().build(features_shape)
 
     def call(self, features):
-        feature_shape = K.shape(features)[1:]
         tau_samples = self.tau_rng
         # shape (batch_size * num_quantiles, embedding_dims)
         tau_samples_tiled = K.tile(tau_samples, [1, self.embedding_dims])
@@ -35,7 +34,7 @@ class IQN(Layer):
     def get_config(self):
         config = super().get_config()
         config.update(dict(
-            num_quantiles=num_quantiles,
-            embedding_dims=embedding_dims,
+            num_quantiles=self.num_quantiles,
+            embedding_dims=self.embedding_dims,
         ))
         return config

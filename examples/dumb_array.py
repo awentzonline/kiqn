@@ -18,23 +18,20 @@ epochs = 100
 # build model
 # input feature extractor
 x_input = layers.Input(batch_shape=(batch_size, input_dims,), name='x_in')
+target_input = layers.Input(batch_shape=(batch_size, output_dims,), name='target_in')
+
 x = layers.Dense(feature_dims, activation='relu', name='x_feats')(x_input)
 
 # Condition the input features on quantile embeddings
 x_tau, taus = IQN(num_quantiles=num_quantiles,
                   embedding_dims=quantile_embedding_dims,
                   name='iqn')(x)
-
-# Tile the quantile samples so they can be concatenated with the outputs
-taus = layers.Lambda(lambda x: K.tile(taus, (1, output_dims)), name='taus')(taus)
 p_output = layers.Dense(output_dims, name='p_out')(x_tau)
-iqn_output = layers.concatenate([taus, p_output], axis=0, name='iqn_out')
 
-model = models.Model(inputs=[x_input],
-                     outputs=[iqn_output])
-loss = iqn_loss(num_quantiles=num_quantiles)
-
-model.compile(optimizer='adam', loss=loss)
+model = models.Model(inputs=[x_input, target_input],
+                     outputs=[p_output])
+model.add_loss(iqn_loss(target_input, p_output, taus))
+model.compile(optimizer='adam')
 model.summary()
 
 # dumb dataset
@@ -50,7 +47,7 @@ y = np.dot(x, weights) + bias
 print(stds, means, weights, bias)
 
 try:
-    model.fit([x], [y], batch_size=batch_size, epochs=epochs)
+    model.fit([x, y], [], batch_size=batch_size, epochs=epochs)
 except KeyboardInterrupt:
     pass
 
