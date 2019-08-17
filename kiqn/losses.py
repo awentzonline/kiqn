@@ -23,6 +23,5 @@ def iqn_loss(target, pred, qs, k=1.):
         0.5 * K.square(err),
         k * (K.abs(err) - 0.5 * k)
     )
-    print('errr', list(map(lambda x: K.int_shape(x), (loss, err, qs, target, pred, K.cast(err < 0, K.floatx())))))
     # Take sum of loss over quantile dim and then batch mean
     return K.mean(K.sum(K.abs(qs - K.cast(err < 0, K.floatx())) * loss, axis=0))
